@@ -8,18 +8,17 @@ import (
 
 func main() {
 	src := []byte("あああ")
-	fmt.Println("平文値", src)
+
+	key := []byte("1234567890abcdef")
 
 	// 暗号化する
-	e, err := internal.Encrypt(src)
+	e, err := internal.Encrypt(src, key)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	fmt.Println("暗号値", e.Cipher)
-
 	// 復号する
-	d, err := internal.Decrypt(e.Cipher, e.Key, e.InitializationVector)
+	d, err := internal.Decrypt(e.Cipher, key, e.InitializationVector)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
