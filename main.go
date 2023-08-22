@@ -3,11 +3,9 @@ package main
 import (
 	"bytes"
 	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"strings"
 )
@@ -56,42 +54,35 @@ func Encrypt(src []byte) (*EncryptResult, error) {
 	src = pad(src, block.BlockSize())
 
 	// 暗号化する
-	ciphertext := make([]byte, aes.BlockSize+len(src))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, err
-	}
-	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], src)
+	dst := make([]byte, len(src))
+	block.Encrypt(dst, src)
 
 	return &EncryptResult{
 		Key:    key,
-		Cipher: ciphertext,
+		Cipher: dst,
 	}, nil
 }
 
 func Decrypt(src []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, fmt.Errorf("Desrypt: create aes.NewCipher: %w", err)
+		return nil, fmt.Errorf("desrypt: create aes.NewCipher: %w", err)
 	}
 
 	if len(src) < aes.BlockSize {
-		return nil, errors.New("Decrypt: ciphertext too short")
+		return nil, errors.New("decrypt: ciphertext too short")
 	}
-	iv := src[:aes.BlockSize]
-	src = src[aes.BlockSize:]
 
-	stream := cipher.NewCFBDecrypter(block, iv)
-	stream.XORKeyStream(src, src)
+	dst := make([]byte, len(src))
+	block.Decrypt(dst, src)
 
 	// パディングを削除する
-	src, err = unpad(src, block.BlockSize())
+	result, err := unpad(dst, block.BlockSize())
 	if err != nil {
 		return nil, err
 	}
 
-	return src, nil
+	return result, nil
 }
 
 // パディングする
